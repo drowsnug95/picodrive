@@ -757,7 +757,8 @@ void emu_osd_text16(int x, int y, const char *text)
 		for (i = len; i > 0; i--, p++)
 			*p = (*p >> 2) & 0x39e7;
 	}
-	emu_text_out16(x, y, text);
+	//emu_text_out16(x, y, text);
+	emu_text_out16(x + 10 , 12, text); //for rs-90
 }
 
 static void update_movie(void)

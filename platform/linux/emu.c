@@ -82,7 +82,9 @@ void pemu_finalize_frame(const char *fps, const char *notice)
 		if (notice)
 			emu_osd_text16(4, g_screen_height - 8, notice);
 		if (currentConfig.EmuOpt & EOPT_SHOW_FPS)
-			emu_osd_text16(g_screen_width - 60, g_screen_height - 8, fps);
+            //for rs-90
+			//emu_osd_text16(g_screen_width - 60, g_screen_height - 8, fps);
+			emu_osd_text16(g_screen_width - 86, g_screen_height - 8, fps);
 	}
 	if ((PicoIn.AHW & PAHW_MCD) && (currentConfig.EmuOpt & EOPT_EN_CD_LEDS))
 		draw_cd_leds();

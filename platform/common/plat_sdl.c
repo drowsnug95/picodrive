@@ -21,6 +21,10 @@
 
 static void *shadow_fb;
 
+//for rs-90
+void downscale_224to160(uint16_t *dst, uint16_t *src);
+void downscale_224to160_crop(uint32_t *dst, uint32_t *src);
+
 const struct in_default_bind in_sdl_defbinds[] __attribute__((weak)) = {
 	{ SDLK_UP,     IN_BINDTYPE_PLAYER12, GBTN_UP },
 	{ SDLK_DOWN,   IN_BINDTYPE_PLAYER12, GBTN_DOWN },
@@ -164,9 +168,15 @@ void plat_video_flip(void)
 		gl_flip(shadow_fb, g_screen_ppitch, g_screen_height);
 	}
 	else {
-		if (SDL_MUSTLOCK(plat_sdl_screen))
-			SDL_UnlockSurface(plat_sdl_screen);
-		SDL_Flip(plat_sdl_screen);
+		if (SDL_MUSTLOCK(ScreenSurface))
+			SDL_UnlockSurface(ScreenSurface);
+        if(currentConfig.scaling==1)
+            downscale_224to160((uint16_t*)plat_sdl_screen->pixels,(uint16_t*)ScreenSurface->pixels);
+        else
+            downscale_224to160_crop((uint32_t*)plat_sdl_screen->pixels,(uint32_t*)ScreenSurface->pixels);
+        
+		SDL_Flip(ScreenSurface);
+        
 		g_screen_ptr = plat_sdl_screen->pixels;
 		PicoDrawSetOutBuf(g_screen_ptr, g_screen_ppitch * 2);
 	}
@@ -190,7 +200,9 @@ void plat_video_menu_begin(void)
 	else {
 		if (SDL_MUSTLOCK(plat_sdl_screen))
 			SDL_LockSurface(plat_sdl_screen);
-		g_menuscreen_ptr = plat_sdl_screen->pixels;
+		//g_menuscreen_ptr = plat_sdl_screen->pixels;
+        g_menuscreen_ptr = ScreenSurface->pixels;
+        g_menuscreen_pp = 240;
 	}
 }
 
@@ -295,4 +307,132 @@ void plat_finish(void)
 	free(g_menubg_ptr);
 	g_menubg_ptr = NULL;
 	plat_sdl_finish();
+}
+
+#define RSHIFT(X) (((X) & 0xF7DE) >>1)
+#define RSHIFT32(X) (((X) & 0xF7DEF7DE) >>1)
+/*convert 224px to 160px by drowsnug */
+void downscale_224to160_crop(uint32_t* __restrict__ src, uint32_t* __restrict__ dst)
+{
+    uint16_t y=4;
+    uint32_t* __restrict__ buffer_mem;
+    
+    const uint16_t ix=1, iy=7;
+    
+    for(int H=0; H < 160/5; H += 1)
+    {
+	    buffer_mem = &src[y*160];
+        uint16_t x = 20;
+        for(int W=0; W<120; W++) 
+        {
+            uint32_t a,b,c,d,e,f,g;
+            
+            a = RSHIFT32(buffer_mem[x]);
+            b = RSHIFT32(buffer_mem[x+160]);
+            c = RSHIFT32(buffer_mem[x+160*2]);
+            d = RSHIFT32(buffer_mem[x+160*3]);
+            e = RSHIFT32(buffer_mem[x+160*4]);
+            f = RSHIFT32(buffer_mem[x+160*5]);
+            g = RSHIFT32(buffer_mem[x+160*6]);          
+
+            *dst =  a +  RSHIFT32(a + b);
+	        *(dst+120) = b + c;
+	        *(dst+120*2) = d + RSHIFT32(d + RSHIFT32(c + e));
+	        *(dst+120*3) = e + f;
+	        *(dst+120*4) = g + RSHIFT32(f + g);
+ 	        dst++;
+            x += ix;
+        }
+        dst += 120*4;
+        y += iy;
+    }
+}
+
+/*convert 224px to 160px by drowsnug */
+//
+// downscale 5 by 4 pixels into 4 by 3 pixels 
+//
+//  a1 a2 a3 a4 a5
+//  b1 b2 b3 b4 b5
+//  c1 c2 c3 c4 c5
+//  d1 d2 d3 d4 d5
+//
+//   into 
+//
+//  A1 A2 A3 A4
+//  B1 B2 B3 B4
+//  C1 C2 C3 C4
+
+void downscale_224to160(uint16_t* __restrict__ src, uint16_t* __restrict__ dst)
+{
+    uint16_t y=10;
+    uint16_t* __restrict__ buffer_mem;
+
+    const uint16_t ix=5, iy=4;
+    
+    for(int H=0; H < 160/3; H++)
+    {
+	    buffer_mem = &src[y*320];
+        uint16_t x = 10;
+        for(int W=0; W< 240/4; W++) 
+        {
+            uint16_t a1,a2,a3,a4,a5,b1,b2,b3,b4,b5,c1,c2,c3,c4,c5,d1,d2,d3,d4,d5;
+            
+            a1 = RSHIFT(buffer_mem[x]);
+            a2 = RSHIFT(buffer_mem[x+1]);
+            a3 = RSHIFT(buffer_mem[x+2]);
+            a4 = RSHIFT(buffer_mem[x+3]);
+            a5 = RSHIFT(buffer_mem[x+4]);
+            
+            b1 = RSHIFT(buffer_mem[x+320]);
+            b2 = RSHIFT(buffer_mem[x+320+1]);
+            b3 = RSHIFT(buffer_mem[x+320+2]);
+            b4 = RSHIFT(buffer_mem[x+320+3]);
+            b5 = RSHIFT(buffer_mem[x+320+4]);
+            
+            c1 = RSHIFT(buffer_mem[x+320*2]);
+            c2 = RSHIFT(buffer_mem[x+320*2+1]);
+            c3 = RSHIFT(buffer_mem[x+320*2+2]);
+            c4 = RSHIFT(buffer_mem[x+320*2+3]);
+            c5 = RSHIFT(buffer_mem[x+320*2+4]);
+
+            d1 = RSHIFT(buffer_mem[x+320*3]);
+            d2 = RSHIFT(buffer_mem[x+320*3+1]);
+            d3 = RSHIFT(buffer_mem[x+320*3+2]);
+            d4 = RSHIFT(buffer_mem[x+320*3+3]);
+            d5 = RSHIFT(buffer_mem[x+320*3+4]);
+
+            //A1
+            *dst =a1 + RSHIFT(b1 + RSHIFT(a2 + RSHIFT(a1 + b2)));
+            //A2
+            *(dst+1) = a2 + RSHIFT(a3 + RSHIFT(b2 + b3));
+            //A3
+            *(dst+2) = a4 + RSHIFT(a3 +  RSHIFT(b3 + b4));
+            //A4
+            *(dst+3) = a5 + RSHIFT(b5+ RSHIFT(a4 + RSHIFT(a5 + b4)));
+            
+            //B1
+	        *(dst+240) = RSHIFT(b1 + RSHIFT(b1 + b2)) + RSHIFT(c1 + RSHIFT(c1 + c2));
+            //B2
+            *(dst+240+1) = RSHIFT(b2 + c2) + RSHIFT(RSHIFT(b3 + RSHIFT(b2 + b3)) + RSHIFT(c3 + RSHIFT(c2 + c3)));
+            //B3
+            *(dst+240+2) = RSHIFT(b4 + c4) + RSHIFT(RSHIFT(b3 + RSHIFT(b3 + b4)) + RSHIFT(c3 + RSHIFT(c3 + c4)));
+            //B4
+            *(dst+240+3) = RSHIFT(b5 +  RSHIFT(b4 + b5)) + RSHIFT(c5 + RSHIFT(c4 + c5));
+            
+            //C1
+	        *(dst+240*2) = d1 + RSHIFT(c1 + RSHIFT(d2 + RSHIFT(c2 + d1)));
+            //C2
+            *(dst+240*2+1) = d2 + RSHIFT(d3 + RSHIFT(c2 + c3));
+            //C3
+            *(dst+240*2+2) = d4 + RSHIFT(d3 + RSHIFT(c3 + c4));
+            //C4
+            *(dst+240*2+3) = d5 + RSHIFT(c5 + RSHIFT(d4 + RSHIFT(c4 + d5)));
+            
+            dst+=4;
+            x += ix;
+        }
+        dst += 240*2;
+        y += iy;
+    }
 }

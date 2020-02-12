@@ -2,6 +2,8 @@
 # some elements originated from qemu configure
 set -e
 
+CROSS_COMPILE="mipsel-linux-"
+
 TMPC="/tmp/picodrive-conf-${RANDOM}-$$-${RANDOM}.c"
 TMPO="/tmp/picodrive-conf-${RANDOM}-$$-${RANDOM}.o"
 TMPB="/tmp/picodrive-conf-${RANDOM}-$$-${RANDOM}"

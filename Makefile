@@ -1,5 +1,8 @@
 TARGET ?= PicoDrive
 DEBUG ?= 0
+#USE_GCOV=YES
+USE_GCOV=APPLY
+
 CFLAGS += -Wall -ggdb -ffunction-sections -fdata-sections
 CFLAGS += -I.
 ifeq "$(DEBUG)" "0"
@@ -213,6 +216,12 @@ ifneq ($(findstring gcc,$(CC)),)
 LDFLAGS += -Wl,-Map=$(TARGET).map
 endif
 
+ifeq ($(USE_GCOV), YES)
+CFLAGS += -fprofile-generate=/media/data/local/home/profile
+LDFLAGS += -lgcov -fprofile-generate=/media/data/local/home/profile
+else ifeq ($(USE_GCOV), APPLY)
+CFLAGS		+= -fprofile-use -fbranch-probabilities
+endif
 
 target_: pico/pico_int_offs.h $(TARGET)
 

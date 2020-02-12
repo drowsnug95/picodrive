@@ -293,9 +293,9 @@ me_bind_action me_ctrl_actions[] =
 	{ "A      ", 0x0040 },
 	{ "B      ", 0x0010 },
 	{ "C      ", 0x0020 },
-	{ "A turbo", 0x4000 },
-	{ "B turbo", 0x1000 },
-	{ "C turbo", 0x2000 },
+	//{ "A turbo", 0x4000 },
+	//{ "B turbo", 0x1000 },
+	//{ "C turbo", 0x2000 },
 	{ "START  ", 0x0080 },
 	{ "MODE   ", 0x0800 },
 	{ "X      ", 0x0400 },
@@ -310,9 +310,9 @@ me_bind_action emuctrl_actions[] =
 	{ "Save State       ", PEV_STATE_SAVE },
 	{ "Prev Save Slot   ", PEV_SSLOT_PREV },
 	{ "Next Save Slot   ", PEV_SSLOT_NEXT },
-	{ "Switch Renderer  ", PEV_SWITCH_RND },
-	{ "Volume Down      ", PEV_VOL_DOWN },
-	{ "Volume Up        ", PEV_VOL_UP },
+	//{ "Switch Renderer  ", PEV_SWITCH_RND },
+	//{ "Volume Down      ", PEV_VOL_DOWN },
+	//{ "Volume Up        ", PEV_VOL_UP },
 	{ "Fast forward     ", PEV_FF },
 	{ "Reset Game       ", PEV_RESET },
 	{ "Enter Menu       ", PEV_MENU },
@@ -719,6 +719,7 @@ static const char *mgn_saveloadcfg(int id, int *offs)
 static const char *men_confirm_save[] = { "OFF", "writes", "loads", "both", NULL };
 static const char h_confirm_save[]    = "Ask for confirmation when overwriting save,\n"
 					"loading state or both";
+const char *men_scaling_opts[] = { "Crop", "Full", NULL };
 
 static menu_entry e_menu_options[] =
 {
@@ -726,6 +727,7 @@ static menu_entry e_menu_options[] =
 	mee_range_cust("Frameskip",                MA_OPT_FRAMESKIP,     currentConfig.Frameskip, -1, 16, mgn_opt_fskip),
 	mee_cust      ("Region",                   MA_OPT_REGION,        mh_opt_misc, mgn_opt_region),
 	mee_onoff     ("Show FPS",                 MA_OPT_SHOW_FPS,      currentConfig.EmuOpt, EOPT_SHOW_FPS),
+	mee_enum      ("Display scaling",          MA_OPT_SCALING,        currentConfig.scaling, men_scaling_opts), //for rs-90
 	mee_onoff     ("Enable sound",             MA_OPT_ENABLE_SOUND,  currentConfig.EmuOpt, EOPT_EN_SOUND),
 	mee_cust      ("Sound Quality",            MA_OPT_SOUND_QUALITY, mh_opt_misc, mgn_opt_sound),
 	mee_enum_h    ("Confirm savestate",        MA_OPT_CONFIRM_STATES,currentConfig.confirm_save, men_confirm_save, h_confirm_save),
@@ -1069,8 +1071,6 @@ static int main_menu_handler(int id, int keys)
 static menu_entry e_menu_main[] =
 {
 	mee_label     ("PicoDrive " VERSION),
-	mee_label     (""),
-	mee_label     (""),
 	mee_label     (""),
 	mee_handler_id("Resume game",        MA_MAIN_RESUME_GAME, main_menu_handler),
 	mee_handler_id("Save State",         MA_MAIN_SAVE_STATE,  main_menu_handler),
