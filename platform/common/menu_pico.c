@@ -719,7 +719,7 @@ static const char *mgn_saveloadcfg(int id, int *offs)
 static const char *men_confirm_save[] = { "OFF", "writes", "loads", "both", NULL };
 static const char h_confirm_save[]    = "Ask for confirmation when overwriting save,\n"
 					"loading state or both";
-const char *men_scaling_opts[] = { "Crop", "Full", NULL };
+const char *men_scaling_opts[] = { "Crop", "Full", "Full(New)",NULL };
 
 static menu_entry e_menu_options[] =
 {

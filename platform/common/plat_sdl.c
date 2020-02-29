@@ -170,10 +170,17 @@ void plat_video_flip(void)
 	else {
 		if (SDL_MUSTLOCK(ScreenSurface))
 			SDL_UnlockSurface(ScreenSurface);
-        if(currentConfig.scaling==1)
-            downscale_224to160((uint16_t*)plat_sdl_screen->pixels,(uint16_t*)ScreenSurface->pixels);
-        else
-            downscale_224to160_crop((uint32_t*)plat_sdl_screen->pixels,(uint32_t*)ScreenSurface->pixels);
+        
+        switch (currentConfig.scaling){
+            case 1: //old-full
+                downscale_224to160((uint16_t*)plat_sdl_screen->pixels,(uint16_t*)ScreenSurface->pixels);
+                break;
+            case 2: //new full
+                downscale_224to160_subpixel((uint16_t*)plat_sdl_screen->pixels,(uint16_t*)ScreenSurface->pixels);     
+                break;
+            default: //crop
+                downscale_224to160_crop((uint32_t*)plat_sdl_screen->pixels,(uint32_t*)ScreenSurface->pixels);
+        }
         
 		SDL_Flip(ScreenSurface);
         
@@ -363,7 +370,7 @@ void downscale_224to160_crop(uint32_t* __restrict__ src, uint32_t* __restrict__ 
 //  B1 B2 B3 B4
 //  C1 C2 C3 C4
 
-void downscale_224to160(uint16_t* __restrict__ src, uint16_t* __restrict__ dst)
+    void downscale_224to160(uint16_t* __restrict__ src, uint16_t* __restrict__ dst)
 {
     uint16_t y=10;
     uint16_t* __restrict__ buffer_mem;
@@ -435,4 +442,66 @@ void downscale_224to160(uint16_t* __restrict__ src, uint16_t* __restrict__ dst)
         dst += 240*2;
         y += iy;
     }
+}
+
+//Fullscreen by sub-pixel scaling
+void downscale_224to160_subpixel(uint16_t* __restrict__ src, uint16_t* __restrict__ dst)
+{
+    #define RMASK 0b1111100000000000
+    #define GMASK 0b0000011111100000
+    #define BMASK 0b0000000000011111
+    
+    uint16_t y=10;
+    uint16_t* __restrict__ buffer_mem;
+    uint16_t* d = dst;
+
+    const uint16_t ix=5, iy=4;
+    
+    for(int H=0; H < 160/3; H++)
+    {
+	    buffer_mem = &src[y*320];
+        uint16_t x = 10;
+        for(int W=0; W< 240/4; W++) 
+        {
+            uint16_t c[4][4];
+            for(int j=0 ; j<4; j++){
+                uint16_t r[5],g[5],b[5],R[4],G[4],B[4];
+                for (int i = 0; i< 5; i++){
+                    r[i] = (buffer_mem[x + i + 320 * j]) & RMASK;
+                    g[i] = (buffer_mem[x + i + 320 * j]) & GMASK;
+                    b[i] = (buffer_mem[x + i + 320 * j]) & BMASK;
+                }
+                R[0] = r[0];
+                G[0] = g[0];
+                B[0] = ((b[0] + b[1])>>1) & BMASK;
+
+                R[1] = r[1];
+                G[1] = ((g[1] + ((g[1] + g[2])>>1))>>1) & GMASK;
+                B[1] = b[2];
+
+                R[2] = r[2];
+                G[2] = ((g[3] + ((g[3] + g[2])>>1))>>1) & GMASK;
+                B[2] = b[3];
+
+                R[3] = ((r[3]>>1) + (r[4]>>1)) & RMASK;
+                G[3] = g[4];
+                B[3] = b[4];
+            
+                c[0][j] = R[0] | G[0] | B[0];
+                c[1][j] = R[1] | G[1] | B[1];
+                c[2][j] = R[2] | G[2] | B[2];
+                c[3][j] = R[3] | G[3] | B[3];
+            }
+            for(int i = 0; i < 4; i++){
+                *(d + i) = RSHIFT(c[i][0]) + RSHIFT(RSHIFT(c[i][0]) + RSHIFT(c[i][1])); 
+                *(d + i + 240) = RSHIFT(c[i][1]) + RSHIFT(c[i][2]); 
+                *(d + i + 240 *2) = RSHIFT(c[i][3]) + RSHIFT(RSHIFT(c[i][2]) + RSHIFT(c[i][3])); 
+            }
+            d+=4;
+            x += ix;
+        }
+        d += 240*2;
+        y += iy;
+    }
+    
 }
